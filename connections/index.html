@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Connections</title>
+        <style>
+            :root {
+                --bg: #FFFDD0;
+                --unselected-tile: #B399A2;
+                --selected-tile: #51344D;
+            }
+            body {
+                background-color: var(--bg);
+                width: 100vw;
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0;
+                padding: 0;
+            }
+            .container {
+                width: 50vw;
+                height: 70vh;
+                background-color: transparent;
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+                grid-template-rows: 1fr 1fr 1fr 1fr;
+                gap: 5px;
+                padding: 0px;
+            }
+            .tile {
+                background-color: var(--unselected-tile);
+                border: 1px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="tile" id="11"></div>
+            <div class="tile" id="12"></div>
+            <div class="tile" id="13"></div>
+            <div class="tile" id="14"></div>
+            <div class="tile" id="21"></div>
+            <div class="tile" id="22"></div>
+            <div class="tile" id="23"></div>
+            <div class="tile" id="24"></div>
+            <div class="tile" id="31"></div>
+            <div class="tile" id="32"></div>
+            <div class="tile" id="33"></div>
+            <div class="tile" id="34"></div>
+            <div class="tile" id="41"></div>
+            <div class="tile" id="42"></div>
+            <div class="tile" id="43"></div>
+            <div class="tile" id="44"></div>
+        </div>
+    </body>
+</html>
