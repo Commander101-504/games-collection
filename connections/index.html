@@ -26,32 +26,226 @@
                 grid-template-columns: 1fr 1fr 1fr 1fr;
                 grid-template-rows: 1fr 1fr 1fr 1fr;
                 gap: 5px;
-                padding: 0px;
             }
             .tile {
                 background-color: var(--unselected-tile);
                 border: 1px solid black;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1rem;
+                cursor: pointer;
+                user-select: none;
             }
         </style>
     </head>
     <body>
         <div class="container">
-            <div class="tile" id="11"></div>
-            <div class="tile" id="12"></div>
-            <div class="tile" id="13"></div>
-            <div class="tile" id="14"></div>
-            <div class="tile" id="21"></div>
-            <div class="tile" id="22"></div>
-            <div class="tile" id="23"></div>
-            <div class="tile" id="24"></div>
-            <div class="tile" id="31"></div>
-            <div class="tile" id="32"></div>
-            <div class="tile" id="33"></div>
-            <div class="tile" id="34"></div>
-            <div class="tile" id="41"></div>
-            <div class="tile" id="42"></div>
-            <div class="tile" id="43"></div>
-            <div class="tile" id="44"></div>
+            <div class="tile" id="t0"></div>
+            <div class="tile" id="t1"></div>
+            <div class="tile" id="t2"></div>
+            <div class="tile" id="t3"></div>
+            <div class="tile" id="t4"></div>
+            <div class="tile" id="t5"></div>
+            <div class="tile" id="t6"></div>
+            <div class="tile" id="t7"></div>
+            <div class="tile" id="t8"></div>
+            <div class="tile" id="t9"></div>
+            <div class="tile" id="t10"></div>
+            <div class="tile" id="t11"></div>
+            <div class="tile" id="t12"></div>
+            <div class="tile" id="t13"></div>
+            <div class="tile" id="t14"></div>
+            <div class="tile" id="t15"></div>
         </div>
+        <script>
+            const COLORS = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)'];
+            const MAX_MISTAKES = 4;
+            
+            let puzzle = null;
+            let tiles = [];       // { text, categoryIndex }
+            let selected = [];    // indices into tiles[]
+            let mistakes = 0;
+            let solved = [];      // category indices already solved
+            
+            async function loadPuzzle() {
+                const res = await fetch('./puzzles.json');
+                const puzzleList = await res.json();
+                const randomIndex = Math.floor(Math.random() * puzzleList.length);
+                puzzle = puzzleList[randomIndex];
+                initTiles();
+                render();
+            }
+            
+            function initTiles() {
+                tiles = [];
+                puzzle.categories.forEach((cat, catIndex) => {
+                    cat.tiles.forEach(text => {
+                        tiles.push({ text, categoryIndex: catIndex });
+                    });
+                });
+                shuffle(tiles);
+            }
+            
+            function shuffle(arr) {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+            }
+            
+            function render() {
+                const grid = document.getElementById('grid');
+                grid.innerHTML = '';
+            
+                // Only show tiles that aren't in solved categories
+                const visibleTiles = tiles.filter(t => !solved.includes(t.categoryIndex));
+            
+                visibleTiles.forEach((tile, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'tile' + (selected.includes(i) ? ' selected' : '');
+                    div.textContent = tile.text;
+                    div.addEventListener('click', () => toggleSelect(i));
+                    grid.appendChild(div);
+                });
+            }
+            
+            function toggleSelect(i) {
+                if (solved.includes(getVisibleTiles()[i].categoryIndex)) return;
+                if (selected.includes(i)) {
+                    selected = selected.filter(s => s !== i);
+                } else {
+                    if (selected.length >= 4) return;
+                    selected.push(i);
+                }
+                render();
+            }
+            
+            function getVisibleTiles() {
+                return tiles.filter(t => !solved.includes(t.categoryIndex));
+            }
+            
+            function submit() {
+                if (selected.length !== 4) {
+                    showMessage('Select exactly 4 tiles!');
+                    return;
+                }
+            
+                const visible = getVisibleTiles();
+                const selectedTiles = selected.map(i => visible[i]);
+                const categoryIndex = selectedTiles[0].categoryIndex;
+                const allSame = selectedTiles.every(t => t.categoryIndex === categoryIndex);
+            
+                if (allSame) {
+                    // Correct!
+                    solved.push(categoryIndex);
+                    selected = [];
+                    addSolvedRow(categoryIndex);
+                    render();
+            
+                    if (solved.length === puzzle.categories.length) {
+                        showMessage('You got them all! 🎉');
+                        disableButtons();
+                    } else {
+                        showMessage('Nice one!');
+                    }
+                } else {
+                    // Wrong
+                    mistakes++;
+                    updateDots();
+            
+                    // Check if one away
+                    const counts = {};
+                    selectedTiles.forEach(t => {
+                        counts[t.categoryIndex] = (counts[t.categoryIndex] || 0) + 1;
+                    });
+                    const isOneAway = Object.values(counts).some(v => v === 3);
+            
+                    shakeTiles();
+            
+                    if (mistakes >= MAX_MISTAKES) {
+                        showMessage('No more mistakes — game over!');
+                        revealAll();
+                        disableButtons();
+                    } else {
+                        showMessage(isOneAway ? 'One away...' : 'Wrong!');
+                    }
+            
+                    selected = [];
+                    setTimeout(render, 600);
+                }
+            }
+            
+            function addSolvedRow(categoryIndex) {
+                const cat = puzzle.categories[categoryIndex];
+                const color = COLORS[cat.level - 1];
+                const area = document.getElementById('solved-area');
+                const row = document.createElement('div');
+                row.className = 'solved-row';
+                row.style.backgroundColor = color;
+                row.innerHTML = `
+                    <div class="topic">${cat.topic}</div>
+                    <div class="words">${cat.tiles.join(', ')}</div>
+                `;
+                area.appendChild(row);
+            }
+            
+            function updateDots() {
+                for (let i = 0; i < MAX_MISTAKES; i++) {
+                    const dot = document.getElementById(`d${i}`);
+                    if (i >= MAX_MISTAKES - mistakes) {
+                        dot.classList.add('used');
+                    }
+                }
+            }
+            
+            function shakeTiles() {
+                const grid = document.getElementById('grid');
+                const tileDivs = grid.querySelectorAll('.tile.selected');
+                tileDivs.forEach(div => {
+                    div.classList.remove('shake');
+                    void div.offsetWidth; // reflow to restart animation
+                    div.classList.add('shake');
+                });
+            }
+            
+            function revealAll() {
+                puzzle.categories.forEach((_, i) => {
+                    if (!solved.includes(i)) {
+                        solved.push(i);
+                        addSolvedRow(i);
+                    }
+                });
+                render();
+            }
+            
+            function showMessage(msg) {
+                const el = document.getElementById('message');
+                el.textContent = msg;
+                setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 2500);
+            }
+            
+            function disableButtons() {
+                document.getElementById('submit-btn').disabled = true;
+                document.getElementById('shuffle-btn').disabled = true;
+                document.getElementById('deselect-btn').disabled = true;
+            }
+            
+            document.getElementById('submit-btn').addEventListener('click', submit);
+            document.getElementById('deselect-btn').addEventListener('click', () => {
+                selected = [];
+                render();
+            });
+            document.getElementById('shuffle-btn').addEventListener('click', () => {
+                const visible = getVisibleTiles();
+                shuffle(visible);
+                // Re-merge shuffled visible tiles back (keep solved ones out)
+                tiles = tiles.filter(t => solved.includes(t.categoryIndex)).concat(visible);
+                selected = [];
+                render();
+            });
+            
+            loadPuzzle();
+        </script>
     </body>
 </html>
